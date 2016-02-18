@@ -52,7 +52,13 @@ class main(cmd.Cmd):
 		parser.add_argument("-c",'--cmd', help="cmd", required=True)
 		try:
 			args = vars(parser.parse_args(shlex.split(arg)))
-			man.execute(int(args['sess']), args['cmd'])
+			if 'all' not in args['sess']:
+				Thread( target=man.execute, args=(int(args['sess']), args['cmd'],)).start()
+			else:
+				print 1
+				for i in man.live:
+					print i
+					Thread( target=man.execute, args=(i, args['cmd'],)).start()
 		except:
 			return
 

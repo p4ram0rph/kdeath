@@ -48,7 +48,7 @@ class Man(Tor,Exec):
 				sock = Tor.newSock(self)
 				sock.connect( ( host, port ) )
 				data = sock.recv(4096)
-				while 'login:' not in data and 'Password:' not in data and '>' not in data:
+				while 'login:' not in data and 'Password:' not in data and '>' not in data and '#' not in data:
 					data = sock.recv(4096)
 					if data is None: return 0
 				#	print data
@@ -71,6 +71,7 @@ class Man(Tor,Exec):
 				pass
 		return 0
 	def execute(self, sess, cmd):
+		print color.setcolor("[+] DATA FROM %s" % self.live[sess][0], color='red')
 		self.live[sess][1].send('%s\r\n' % cmd)
 		data = self.live[sess][1].recv(4096)
 		print '%s %s' % (color.setcolor('[+]',color='green'),data)
