@@ -75,8 +75,8 @@ class main(cmd.Cmd):
 			port = int(args['port']) if args['port'] else 23
 			user = args['user'] if  args['user'] else ''
 			pword = args['pass'] if args['pass'] else ''
-			man.addHost(host,port,user,pword)
-		except Exception, e: print e
+			Thread( target=man.addHost, args=(host,port,user,pword,)).start()
+		except: return
 
 	def do_EOF(self, line):
 		man.updateDB()
