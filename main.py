@@ -10,6 +10,7 @@ version = 0.1
 author = "Knuckles"
 
 man = Man('punsssst')
+Threads = []
 class main(cmd.Cmd):
 	def __init__(self):
 		cmd.Cmd.__init__(self,completekey='tab')
@@ -32,7 +33,7 @@ class main(cmd.Cmd):
 		parser.add_argument("-f",'--file',help="file", required=True)
 		try:
 			args = vars(parser.parse_args(shlex.split(arg)))
-			man.loadfile(args['file'])
+			Threads.append(Thread(target=man.loadfile, args=(args['file'],)).start())
 		except:
 			return
 		#print "Loading %s" % args['file']
@@ -53,12 +54,9 @@ class main(cmd.Cmd):
 		try:
 			args = vars(parser.parse_args(shlex.split(arg)))
 			if 'all' not in args['sess']:
-				Thread( target=man.execute, args=(int(args['sess']), args['cmd'],)).start()
+				Threads.append(Thread( target=man.execute, args=(int(args['sess']), args['cmd'],None,None)).start())
 			else:
-				print 1
-				for i in man.live:
-					print i
-					Thread( target=man.execute, args=(i, args['cmd'],)).start()
+				Threads.append(Thread(target=man.execute_all, args=(args['cmd'],)).start())
 		except:
 			return
 
@@ -67,7 +65,9 @@ class main(cmd.Cmd):
 	def emptyline(self):
 		man.updateDB()
 	def do_exit(self, line):
+		#for i in Threads: i.join()
 		man.updateDB()
+		sys.exit()
 		return True
 	def do_addhost(self, arg):
 		parser = argparse.ArgumentParser(description="I am bored")
@@ -81,11 +81,12 @@ class main(cmd.Cmd):
 			port = int(args['port']) if args['port'] else 23
 			user = args['user'] if  args['user'] else ''
 			pword = args['pass'] if args['pass'] else ''
-			Thread( target=man.addHost, args=(host,port,user,pword,)).start()
+			Threads.append(Thread( target=man.addHost, args=(host,port,user,pword,)).start())
 		except: return
 
 	def do_EOF(self, line):
 		man.updateDB()
+		sys.exit()
 		return True
 
 
